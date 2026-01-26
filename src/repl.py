@@ -1,7 +1,8 @@
-from services.book_generator_service import generate_books_json
+from src.services import generate_books
 from domain.book import Book
 from services.book_service import BookService
 from repositories.book_repository import BookRepository
+import requests
 
 class BookREPL:
     def __init__(self, book_svc):
@@ -13,7 +14,7 @@ class BookREPL:
         while self.running:
             cmd = input('>>>').strip()
             self.handle_command(cmd)
-    
+
     def handle_command(self, cmd):
         if cmd == 'exit':
             self.running = False
@@ -24,11 +25,26 @@ class BookREPL:
             self.add_book()
         elif cmd == 'findByName':
             self.find_book_by_name()
+        elif cmd == 'getJoke':
+            self.get_joke()
         elif cmd == 'help':
-            print('Available commands: addBook, getAllRecords, findByName, help, exit')
+            print('Available commands: addBook, getAllRecords, findByName, getJoke, help, exit')
         else:
             print('Please use a valid command!')
-    
+
+    def get_joke(self):
+        try:
+            url = 'https://api.chucknorris.io/jokes/random'
+            response = requests.get(url, timeout=5)
+            response.raise_for_status()
+            print(response.json()['value'])
+        except requests.exceptions.Timeout:
+            print('Request timed out.')
+        except requests.exceptions.HTTPError as e:
+            print(f'HTTP Error: {e}')
+        except requests.exceptions.RequestException as e:
+            print(f'Something else went wrong: {e}')
+
     def find_book_by_name(self):
         query = input('Please enter book name: ')
         books = self.book_svc.find_book_by_name(query)
@@ -49,10 +65,8 @@ class BookREPL:
         except Exception as e:
             print(f'An unexpected error has occurred: {e}')
 
-
-
 if __name__ == '__main__':
-    generate_books_json()
+    generate_books()
     repo = BookRepository('books.json')
     book_service = BookService(repo)
     repl = BookREPL(book_service)
