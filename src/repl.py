@@ -4,14 +4,20 @@ from src.services.book_generator_bad_data_service import generate_books as get_b
 from src.domain.book import Book
 from src.services.book_service import BookService
 from src.services.book_analytics_service import BookAnalyticsService
+from src.services.checkout_history_service import CheckoutHistoryService
+from src.services.book_visualization_service import BookVisualizationService
 from src.repositories.book_repository import BookRepository
+from src.repositories.checkout_history_repository import CheckoutHistoryRepository
 import requests
 
 class BookREPL:
-    def __init__(self, book_svc, book_analytics_svc):
+    def __init__(self, book_svc, book_analytics_svc, checkout_history_svc, visualization_svc, checkout_history_repo):
         self.running = True
         self.book_svc = book_svc
         self.book_analytics_svc = book_analytics_svc
+        self.checkout_history_svc = checkout_history_svc
+        self.visualization_svc = visualization_svc
+        self.checkout_history_repo = checkout_history_repo
 
     def start(self):
         print('Welcome to the book app! Type \'Help\' for a list of commands!')
@@ -45,8 +51,26 @@ class BookREPL:
             self.get_top_books()
         elif cmd == 'getValueScores':
             self.get_value_scores()
+        elif cmd == 'checkoutBook':
+            self.checkout_book()
+        elif cmd == 'checkinBook':
+            self.checkin_book()
+        elif cmd == 'getCheckoutHistory':
+            self.get_checkout_history()
+        elif cmd == 'generateVisualizations':
+            self.generate_visualizations()
+        elif cmd == 'plotCommonGenres':
+            self.plot_common_genres()
+        elif cmd == 'plotRatedGenres':
+            self.plot_rated_genres()
+        elif cmd == 'plotPriceRating':
+            self.plot_price_rating()
+        elif cmd == 'plotBooksByYear':
+            self.plot_books_by_year()
+        elif cmd == 'plotCheckoutStatus':
+            self.plot_checkout_status()
         elif cmd == 'help':
-            print('Available commands: addBook, removeBook, editBook, getMedianPriceByGenre, getMostPopularGenre, getAllRecords, findByName, getJoke, getAveragePrice, getTopBooks, getValueScores, help, exit')
+            print('Available commands: addBook, removeBook, editBook, getMedianPriceByGenre, getMostPopularGenre, getAllRecords, findByName, getJoke, getAveragePrice, getTopBooks, getValueScores, checkoutBook, checkinBook, getCheckoutHistory, generateVisualizations, plotCommonGenres, plotRatedGenres, plotPriceRating, plotBooksByYear, plotCheckoutStatus, help, exit')
         else:
             print('Please use a valid command!')
 
@@ -130,11 +154,109 @@ class BookREPL:
         except Exception as e:
             print(f'An unexpected error has occurred: {e}')
 
+    def checkout_book(self):
+        try:
+            print("Enter book ID to check out: ")
+            book_id = input("Book ID: ")
+            result = self.checkout_history_svc.checkout_book(book_id)
+            print(result)
+        except Exception as e:
+            print(f'An unexpected error has occurred: {e}')
+
+    def checkin_book(self):
+        try:
+            print("Enter book ID to check in: ")
+            book_id = input("Book ID: ")
+            result = self.checkout_history_svc.checkin_book(book_id)
+            print(result)
+        except Exception as e:
+            print(f'An unexpected error has occurred: {e}')
+
+    def get_checkout_history(self):
+        try:
+            print("Enter book ID to view checkout history: ")
+            book_id = input("Book ID: ")
+            history = self.checkout_history_svc.get_checkout_history_for_book(book_id)
+            if not history:
+                print(f"No checkout history found for book ID: {book_id}")
+            else:
+                print(f"\nCheckout History for Book ID: {book_id}")
+                print("-" * 60)
+                for record in history:
+                    print(f"Checkout ID: {record.checkout_history_id}")
+                    print(f"Checked Out: {record.checked_out_time}")
+                    if record.checked_in_time:
+                        print(f"Checked In: {record.checked_in_time}")
+                    else:
+                        print("Status: Currently Checked Out")
+                    print("-" * 60)
+        except Exception as e:
+            print(f'An unexpected error has occurred: {e}')
+
+    def generate_visualizations(self):
+        """Generate all visualizations."""
+        try:
+            books = self.book_svc.get_all_books()
+            checkout_history = self.checkout_history_repo.get_all_checkout_history()
+            self.visualization_svc.generate_all_visualizations(books, checkout_history)
+            print("All visualizations have been generated and displayed!")
+        except Exception as e:
+            print(f'An unexpected error has occurred: {e}')
+
+    def plot_common_genres(self):
+        """Plot most common genres bar chart."""
+        try:
+            books = self.book_svc.get_all_books()
+            self.visualization_svc.plot_most_common_genres(books)
+        except Exception as e:
+            print(f'An unexpected error has occurred: {e}')
+
+    def plot_rated_genres(self):
+        """Plot highest rated genres bar chart."""
+        try:
+            books = self.book_svc.get_all_books()
+            min_ratings_input = input("Enter minimum ratings threshold (default 75): ").strip()
+            min_ratings = int(min_ratings_input) if min_ratings_input else 75
+            self.visualization_svc.plot_highest_rated_genres(books, min_ratings=min_ratings)
+        except ValueError:
+            print("Invalid input. Using default minimum ratings of 75.")
+            self.visualization_svc.plot_highest_rated_genres(books, min_ratings=75)
+        except Exception as e:
+            print(f'An unexpected error has occurred: {e}')
+
+    def plot_price_rating(self):
+        """Plot price vs rating scatter plot."""
+        try:
+            books = self.book_svc.get_all_books()
+            self.visualization_svc.plot_price_vs_rating(books)
+        except Exception as e:
+            print(f'An unexpected error has occurred: {e}')
+
+    def plot_books_by_year(self):
+        """Plot books by year line chart."""
+        try:
+            books = self.book_svc.get_all_books()
+            self.visualization_svc.plot_books_by_year(books)
+        except Exception as e:
+            print(f'An unexpected error has occurred: {e}')
+
+    def plot_checkout_status(self):
+        """Plot checkout status pie chart."""
+        try:
+            books = self.book_svc.get_all_books()
+            checkout_history = self.checkout_history_repo.get_all_checkout_history()
+            self.visualization_svc.plot_checkout_status(books, checkout_history)
+        except Exception as e:
+            print(f'An unexpected error has occurred: {e}')
+
 if __name__ == '__main__':
     generate_books_json()
     get_bad_books()
     repo = BookRepository('books.json')
     book_service = BookService(repo)
     book_analytics_service = BookAnalyticsService()
-    repl = BookREPL(book_service, book_analytics_service)
+    checkout_history_repo = CheckoutHistoryRepository('checkout_history.json')
+    checkout_history_service = CheckoutHistoryService(checkout_history_repo, repo)
+    visualization_service = BookVisualizationService()
+    repl = BookREPL(book_service, book_analytics_service, checkout_history_service, visualization_service, checkout_history_repo)
     repl.start()

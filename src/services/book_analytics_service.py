@@ -39,10 +39,7 @@ class BookAnalyticsService:
         scores = (ratings * np.log1p(counts)) / prices
 
         return {
-            # zip() iterates both lists in parallel
-            # pairing each book with its corresponding score
-            # zip() will stop automatically if one list is shorter
-            # - if the same key appears more than once, later entries overwrite earlier ones
+
             book.book_id: float(score)
             for book, score in zip(books, scores)
         }
@@ -64,11 +61,8 @@ class BookAnalyticsService:
             'price': b.price_usd
         } for b in books])
         df['score'] = df['avg'] * np.log1p(df['count']) / df['price']
-        # set_index() sets book_id as the index
-        # we do this because we want to end up with a dict[str, float]
-        # where book_id is the key and the value score is the float
-        # sometimes numpy works with float64, but we need to return float,
-        # hence the defensive use of .astype()
+
+
         return (
             df
             .sort_values('score', ascending=False)

@@ -23,12 +23,12 @@ class Book:
     book_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
     def check_out(self):
-        if not self.available:
+        if self.available is False:
             raise Exception('Book is already checked out.')
         self.available = False
 
     def check_in(self):
-        if self.available:
+        if self.available is True:
             raise Exception('Book is already available.')
         self.available = True
     

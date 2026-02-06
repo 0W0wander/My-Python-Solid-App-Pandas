@@ -66,6 +66,23 @@ class BookRepository(BookRepositoryProtocol):
             return f"Failed to Edit {book.title}'s {key}"
 
 
+    def update_book(self, book: Book) -> str:
+        all_books = self.get_all_books()
+        updated = False
+        for i, b in enumerate(all_books):
+            if b.book_id == book.book_id:
+                all_books[i] = book
+                updated = True
+                break
+        
+        if not updated:
+            return f"Book {book.book_id} not found"
+        
+        with open(self.filepath, 'w', encoding='utf-8') as f:
+            json.dump([b.to_dict() for b in all_books], f, indent=2)
+        
+        return f"Successfully updated book {book.book_id}"
+
     def __find_book_by_id(self, book_id:str) -> Book:
         return [b for b in self.get_all_books() if b.book_id == book_id]
 
